@@ -11,7 +11,7 @@ const app = express();
 // ── CORS ──────────────────────────────────────────────────────────
 const allowedOrigins = [
   process.env.CLIENT_URL || "http://localhost:5173",  // Vite client
-  process.env.ADMIN_URL.split(",").map(origin => origin.trim())  || "http://localhost:3001",  // CRA admin
+  ...(process.env.ADMIN_URL ? process.env.ADMIN_URL.split(",").map(origin => origin.trim()) : ["http://localhost:3001"]),  // CRA admin
   "http://localhost:3000",                             // CRA default
 ];
 
