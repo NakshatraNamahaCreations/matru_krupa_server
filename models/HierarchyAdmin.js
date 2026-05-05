@@ -7,6 +7,7 @@ const levelPrefixMap = {
   "Assistant District Admin": "ADA",
   "District Admin": "DA",
   "Taluk Admin": "TA",
+  "Promoters": "PR",
 };
 
 const hierarchyAdminSchema = new mongoose.Schema(
@@ -15,7 +16,7 @@ const hierarchyAdminSchema = new mongoose.Schema(
     level: {
       type: String,
       required: true,
-      enum: ["State Admin", "Assistant District Admin", "District Admin", "Taluk Admin"],
+      enum: ["State Admin", "Assistant District Admin", "District Admin", "Taluk Admin", "Promoters"],
     },
     fullName: { type: String, required: true, trim: true },
     dob: { type: String, default: "" },

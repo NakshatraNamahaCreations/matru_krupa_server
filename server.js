@@ -10,20 +10,33 @@ dotenv.config();
 const app = express();
 
 // ── CORS ──────────────────────────────────────────────────────────
+const parseOrigins = (raw) =>
+  (raw || "")
+    .split(",")
+    .map((o) => o.trim().replace(/\/$/, ""))
+    .filter((o) => /^https?:\/\//.test(o));
+
 const allowedOrigins = [
-  process.env.CLIENT_URL || "http://localhost:5173", // Vite client
-  ...(process.env.ADMIN_URL
-    ? process.env.ADMIN_URL.split(",").map((origin) => origin.trim())
-    : ["http://localhost:3001"]), // CRA admin
-  "http://localhost:3000", // CRA default
+  // Local dev
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://localhost:5173",
+  // Known production origins (safety net if env vars are missing)
+  "https://matru-krupa-admin.vercel.app",
+  "https://matrukrupa.vercel.app",
+  "https://matrugrupa.netlify.app",
+  // From env (comma-separated, with or without scheme normalized)
+  ...parseOrigins(process.env.CLIENT_URL),
+  ...parseOrigins(process.env.ADMIN_URL),
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (mobile apps, Postman, curl)
-      if (!origin || allowedOrigins.includes(origin))
-        return callback(null, true);
+      if (!origin) return callback(null, true);
+      const normalized = origin.replace(/\/$/, "");
+      if (allowedOrigins.includes(normalized)) return callback(null, true);
       callback(new Error(`CORS blocked: ${origin}`));
     },
     credentials: true,
@@ -57,6 +70,7 @@ app.use("/api/hierarchy", require("./routes/hierarchyRoutes"));
 
 // Legacy
 app.use("/api/items", require("./routes/itemRoutes"));
+
 
 // Health check
 app.get("/", (req, res) =>

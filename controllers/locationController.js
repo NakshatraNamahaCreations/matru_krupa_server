@@ -13,18 +13,58 @@ const getDistricts = async (req, res) => {
   }
 };
 
+
 const createDistrict = async (req, res) => {
   try {
-    const { name, state } = req.body;
-    if (!name || !name.trim()) return res.status(400).json({ message: "Name is required" });
+    const { name, state, districts } = req.body;
 
-    const exists = await District.findOne({ name: name.trim() });
-    if (exists) return res.status(400).json({ message: "District already exists" });
+    // ✅ SINGLE INSERT (existing)
+    if (name && name.trim()) {
+      const exists = await District.findOne({ name: name.trim() });
+      if (exists) {
+        return res.status(400).json({ message: "District already exists" });
+      }
 
-    const district = await District.create({ name: name.trim(), state });
-    res.status(201).json(district);
+      const district = await District.create({
+        name: name.trim(),
+        state,
+      });
+
+      return res.status(201).json(district);
+    }
+
+    // ✅ BULK INSERT (NEW)
+    if (districts && Array.isArray(districts)) {
+      const formatted = districts.map((d) => ({
+        name: d.trim(),
+        state: "Karnataka",
+      }));
+
+      // remove duplicates safely
+      const existing = await District.find({
+        name: { $in: formatted.map((d) => d.name) },
+      });
+
+      const existingNames = existing.map((d) => d.name);
+
+      const filtered = formatted.filter(
+        (d) => !existingNames.includes(d.name)
+      );
+
+      const inserted = await District.insertMany(filtered, {
+        ordered: false,
+      });
+
+      return res.status(201).json({
+        message: "Districts added",
+        added: inserted.length,
+        skipped: existingNames,
+      });
+    }
+
+    return res.status(400).json({ message: "Name is required" });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -74,6 +114,50 @@ const deleteDistrict = async (req, res) => {
 };
 
 // ─── TALUKS ───────────────────────────────────────────
+
+const addTaluksBulk = async (req, res) => {
+  try {
+    const { data } = req.body;
+
+    if (!data || typeof data !== "object") {
+      return res.status(400).json({ message: "Invalid data format" });
+    }
+
+    let insertedCount = 0;
+    let skipped = [];
+
+    for (const district in data) {
+      const districtExists = await District.findOne({ name: district });
+      if (!districtExists) {
+        skipped.push(`District not found: ${district}`);
+        continue;
+      }
+
+      const taluks = data[district];
+
+      for (const talukName of taluks) {
+        try {
+          await Taluk.create({
+            name: talukName.trim(),
+            district: district.trim(),
+          });
+          insertedCount++;
+        } catch (err) {
+          // skip duplicates
+          skipped.push(`${talukName} (${district})`);
+        }
+      }
+    }
+
+    res.status(201).json({
+      message: "Taluks inserted",
+      inserted: insertedCount,
+      skipped,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 const getTaluks = async (req, res) => {
   try {
@@ -150,6 +234,51 @@ const deleteTaluk = async (req, res) => {
 
 // ─── HOBLIS ───────────────────────────────────────────
 
+const addHoblisBulk = async (req, res) => {
+  try {
+    const { data } = req.body;
+
+    if (!data || typeof data !== "object") {
+      return res.status(400).json({ message: "Invalid data format" });
+    }
+
+    let inserted = 0;
+    let skipped = [];
+
+    for (const taluk in data) {
+      const talukExists = await Taluk.findOne({ name: taluk });
+
+      if (!talukExists) {
+        skipped.push(`Taluk not found: ${taluk}`);
+        continue;
+      }
+
+      const hoblis = data[taluk];
+
+      for (const hobliName of hoblis) {
+        try {
+          await Hobli.create({
+            name: hobliName.trim(),
+            taluk: taluk.trim(),
+            district: talukExists.district,
+          });
+          inserted++;
+        } catch (err) {
+          skipped.push(`${hobliName} (${taluk})`);
+        }
+      }
+    }
+
+    res.status(201).json({
+      message: "Hoblis inserted",
+      inserted,
+      skipped,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 const getHoblis = async (req, res) => {
   try {
     const { taluk } = req.query;
@@ -224,8 +353,10 @@ module.exports = {
   createTaluk,
   updateTaluk,
   deleteTaluk,
+  addTaluksBulk,
   getHoblis,
   createHobli,
   updateHobli,
   deleteHobli,
+  addHoblisBulk
 };

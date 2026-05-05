@@ -26,6 +26,8 @@ const {
   createTaluk,
   updateTaluk,
   deleteTaluk,
+  addTaluksBulk,
+  addHoblisBulk,
   getHoblis,
   createHobli,
   updateHobli,
@@ -65,11 +67,14 @@ router.get("/taluks", protect, adminOnly, getTaluks);
 router.post("/taluks", protect, adminOnly, createTaluk);
 router.put("/taluks/:id", protect, adminOnly, updateTaluk);
 router.delete("/taluks/:id", protect, adminOnly, deleteTaluk);
+router.post("/taluks/bulk", protect, adminOnly, addTaluksBulk);
 
 // ── Locations: Hoblis ──
 router.get("/hoblis", protect, adminOnly, getHoblis);
 router.post("/hoblis", protect, adminOnly, createHobli);
 router.put("/hoblis/:id", protect, adminOnly, updateHobli);
 router.delete("/hoblis/:id", protect, adminOnly, deleteHobli);
+router.post("/hoblis/bulk", protect, adminOnly, addHoblisBulk);
+
 
 module.exports = router;
