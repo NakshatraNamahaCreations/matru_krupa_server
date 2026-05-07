@@ -12,7 +12,7 @@ const levelPrefixMap = {
 
 const hierarchyAdminSchema = new mongoose.Schema(
   {
-    adminId: { type: String, unique: true }, // e.g. KA-SA-001
+    adminId: { type: String, unique: true }, // e.g. KA-DA-001
     level: {
       type: String,
       required: true,
