@@ -16,6 +16,10 @@ const {
   updateCommissionRule,
   getDistrictSplit,
   saveDistrictSplit,
+  getPromoterSales,
+  createPromoterSale,
+  updatePromoterSaleStatus,
+  deletePromoterSale,
 } = require("../controllers/hierarchyController");
 const {
   getDistricts,
@@ -76,5 +80,11 @@ router.put("/hoblis/:id", protect, adminOnly, updateHobli);
 router.delete("/hoblis/:id", protect, adminOnly, deleteHobli);
 router.post("/hoblis/bulk", protect, adminOnly, addHoblisBulk);
 
+
+// ── Promoter Sales ──
+router.get("/promoter-sales", protect, adminOnly, getPromoterSales);
+router.post("/promoter-sales", protect, adminOnly, createPromoterSale);
+router.patch("/promoter-sales/:id/status", protect, adminOnly, updatePromoterSaleStatus);
+router.delete("/promoter-sales/:id", protect, adminOnly, deletePromoterSale);
 
 module.exports = router;

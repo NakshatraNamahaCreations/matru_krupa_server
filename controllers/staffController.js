@@ -1,8 +1,12 @@
 const jwt = require("jsonwebtoken");
 const Staff = require("../models/Staff");
+const HierarchyAdmin = require("../models/HierarchyAdmin");
 
 const generateToken = (id) =>
   jwt.sign({ id, type: "staff" }, process.env.JWT_SECRET, { expiresIn: "7d" });
+
+const generateHierarchyToken = (id) =>
+  jwt.sign({ id, type: "hierarchy" }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
 // POST /api/staff/login
 const staffLogin = async (req, res) => {
@@ -97,4 +101,37 @@ const deleteStaff = async (req, res) => {
   }
 };
 
-module.exports = { staffLogin, getStaff, createStaff, updateStaff, toggleStaff, deleteStaff };
+// POST /api/staff/hierarchy-login
+const hierarchyLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const admin = await HierarchyAdmin.findOne({ email }).select("+password");
+    if (!admin || !admin.password || !(await admin.comparePassword(password))) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+    if (!admin.isActive) {
+      return res.status(401).json({ message: "Account is deactivated" });
+    }
+    admin.lastLogin = new Date();
+    await admin.save({ validateBeforeSave: false });
+
+    res.json({
+      _id: admin._id,
+      adminId: admin.adminId,
+      name: admin.fullName,
+      fullName: admin.fullName,
+      email: admin.email,
+      mobile: admin.mobile,
+      role: admin.level,
+      level: admin.level,
+      district: admin.district,
+      talukName: admin.talukName,
+      userType: "hierarchy",
+      token: generateHierarchyToken(admin._id),
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { staffLogin, hierarchyLogin, getStaff, createStaff, updateStaff, toggleStaff, deleteStaff };

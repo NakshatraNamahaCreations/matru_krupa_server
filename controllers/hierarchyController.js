@@ -1,7 +1,10 @@
 const HierarchyAdmin = require("../models/HierarchyAdmin");
+const { sendCredentialsEmail } = require("../utils/sendEmail");
 const Shop = require("../models/Shop");
 const CommissionRule = require("../models/CommissionRule");
 const DistrictSplit = require("../models/DistrictSplit");
+const PromoterSale = require("../models/PromoterSale");
+const Product = require("../models/Product");
 
 // ─── HIERARCHY ADMINS ─────────────────────────────────
 
@@ -38,8 +41,27 @@ const createAdmin = async (req, res) => {
     const exists = await HierarchyAdmin.findOne({ email });
     if (exists) return res.status(400).json({ message: "Email already registered" });
 
-    const admin = await HierarchyAdmin.create(req.body);
-    res.status(201).json(admin);
+    // Auto-set password to mobile number
+    const payload = { ...req.body };
+    if (mobile && !payload.password) {
+      payload.password = mobile;
+    }
+
+    const admin = await HierarchyAdmin.create(payload);
+
+    // Send credentials email (non-blocking — don't fail the request if email fails)
+    if (admin.email && mobile) {
+      sendCredentialsEmail({
+        email: admin.email,
+        fullName: admin.fullName,
+        level: admin.level,
+        password: mobile,
+      }).catch((err) => console.error("Failed to send credentials email:", err.message));
+    }
+
+    const result = admin.toObject();
+    delete result.password;
+    res.status(201).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -213,6 +235,109 @@ const saveDistrictSplit = async (req, res) => {
   }
 };
 
+// ─── PROMOTER SALES ─────────────────────────────────
+
+const getPromoterSales = async (req, res) => {
+  try {
+    const { search, status, from, to } = req.query;
+    const filter = {};
+
+    if (search) {
+      filter.$or = [
+        { promoterCode: new RegExp(search, "i") },
+        { promoterName: new RegExp(search, "i") },
+      ];
+    }
+    if (status && status !== "All") filter.status = status;
+    if (from || to) {
+      filter.saleDate = {};
+      if (from) filter.saleDate.$gte = new Date(from);
+      if (to) filter.saleDate.$lte = new Date(to);
+    }
+
+    const sales = await PromoterSale.find(filter).sort({ createdAt: -1 });
+    res.json(sales);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const createPromoterSale = async (req, res) => {
+  try {
+    const { promoterCode, district, taluk, hobli, billingShop, productName, quantity, saleDate, price } = req.body;
+
+    if (!promoterCode || !district || !taluk || !hobli || !billingShop || !productName || !quantity || !saleDate) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const code = promoterCode.trim().toUpperCase();
+    if (!code.startsWith("KA-PA-")) {
+      return res.status(400).json({ message: "Only Promoter codes (KA-PA-XXX) are allowed" });
+    }
+
+    // Look up promoter name from HierarchyAdmin
+    const promoter = await HierarchyAdmin.findOne({
+      adminId: new RegExp(`^${code.replace("KA-PA-", "KA-PR-")}$`, "i"),
+      level: "Promoters",
+    });
+
+    // Look up product price from Product collection
+    let productPrice = price || "-";
+    const product = await Product.findOne({
+      name: new RegExp(`^${productName.trim()}$`, "i"),
+    });
+    if (product) {
+      productPrice = product.price.toLocaleString("en-IN");
+    }
+
+    const sale = await PromoterSale.create({
+      promoterCode: code,
+      promoterName: promoter ? promoter.fullName : code,
+      district,
+      taluk,
+      hobli,
+      billingShop,
+      productName,
+      price: productPrice,
+      quantity: Number(quantity),
+      saleDate: new Date(saleDate),
+    });
+
+    res.status(201).json(sale);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+const updatePromoterSaleStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!["Pending", "Credited", "Rejected"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+
+    const sale = await PromoterSale.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+    if (!sale) return res.status(404).json({ message: "Sale not found" });
+    res.json(sale);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+const deletePromoterSale = async (req, res) => {
+  try {
+    const sale = await PromoterSale.findByIdAndDelete(req.params.id);
+    if (!sale) return res.status(404).json({ message: "Sale not found" });
+    res.json({ message: "Sale deleted" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getAdmins,
   getAdminById,
@@ -228,4 +353,8 @@ module.exports = {
   updateCommissionRule,
   getDistrictSplit,
   saveDistrictSplit,
+  getPromoterSales,
+  createPromoterSale,
+  updatePromoterSaleStatus,
+  deletePromoterSale,
 };

@@ -38,19 +38,32 @@ const hierarchyAdminSchema = new mongoose.Schema(
     state: { type: String, default: "Karnataka" },
     pincode: { type: String, default: "" },
 
+    // Auth
+    password: { type: String, select: false },
+    lastLogin: { type: Date },
+
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }
 );
 
-// Auto-generate adminId before save
+// Auto-generate adminId + hash password before save
 hierarchyAdminSchema.pre("save", async function (next) {
-  if (this.adminId) return next();
+  if (!this.adminId) {
+    const prefix = levelPrefixMap[this.level] || "XX";
+    const count = await mongoose.model("HierarchyAdmin").countDocuments({ level: this.level });
+    this.adminId = `KA-${prefix}-${String(count + 1).padStart(3, "0")}`;
+  }
 
-  const prefix = levelPrefixMap[this.level] || "XX";
-  const count = await mongoose.model("HierarchyAdmin").countDocuments({ level: this.level });
-  this.adminId = `KA-${prefix}-${String(count + 1).padStart(3, "0")}`;
+  if (this.isModified("password") && this.password) {
+    this.password = await bcrypt.hash(this.password, 12);
+  }
+
   next();
 });
+
+hierarchyAdminSchema.methods.comparePassword = async function (candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
 
 module.exports = mongoose.model("HierarchyAdmin", hierarchyAdminSchema);

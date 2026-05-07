@@ -3,6 +3,7 @@ const router = express.Router();
 const { protect, adminOnly } = require("../middleware/auth");
 const {
   staffLogin,
+  hierarchyLogin,
   getStaff,
   createStaff,
   updateStaff,
@@ -10,8 +11,9 @@ const {
   deleteStaff,
 } = require("../controllers/staffController");
 
-// Public — staff login
+// Public — login endpoints
 router.post("/login", staffLogin);
+router.post("/hierarchy-login", hierarchyLogin);
 
 // Admin protected
 router.get("/", protect, adminOnly, getStaff);

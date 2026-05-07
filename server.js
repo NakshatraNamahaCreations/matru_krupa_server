@@ -68,6 +68,12 @@ app.use("/api/attribute-variants", require("./routes/attributeVariantRoutes"));
 // Hierarchy / Commission
 app.use("/api/hierarchy", require("./routes/hierarchyRoutes"));
 
+// Inventory / Warehouse
+app.use("/api/inventory", require("./routes/inventoryRoutes"));
+
+// Pricing
+app.use("/api/pricing", require("./routes/pricingRoutes"));
+
 // Legacy
 app.use("/api/items", require("./routes/itemRoutes"));
 
