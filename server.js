@@ -30,14 +30,28 @@ const allowedOrigins = [
   ...parseOrigins(process.env.ADMIN_URL),
 ];
 
+// Patterns for hosting providers — matches preview deploys too
+const allowedOriginPatterns = [
+  /^https:\/\/[a-z0-9-]+\.vercel\.app$/i,
+  /^https:\/\/[a-z0-9-]+\.netlify\.app$/i,
+];
+
+const isOriginAllowed = (origin) => {
+  if (allowedOrigins.includes(origin)) return true;
+  return allowedOriginPatterns.some((re) => re.test(origin));
+};
+
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (mobile apps, Postman, curl)
       if (!origin) return callback(null, true);
       const normalized = origin.replace(/\/$/, "");
-      if (allowedOrigins.includes(normalized)) return callback(null, true);
-      callback(new Error(`CORS blocked: ${origin}`));
+      if (isOriginAllowed(normalized)) return callback(null, true);
+      console.warn(`CORS rejected origin: ${origin}`);
+      // Return false (not an Error) so cors responds with a clean denial
+      // instead of triggering Express's 500 handler with no CORS headers.
+      callback(null, false);
     },
     credentials: true,
   }),
