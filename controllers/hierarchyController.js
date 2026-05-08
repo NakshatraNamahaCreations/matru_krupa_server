@@ -10,11 +10,12 @@ const Product = require("../models/Product");
 
 const getAdmins = async (req, res) => {
   try {
-    const { level, status } = req.query;
+    const { level, status, parentAdmin } = req.query;
     const filter = {};
     if (level && level !== "All") filter.level = level;
     if (status === "Active") filter.isActive = true;
     if (status === "Inactive") filter.isActive = false;
+    if (parentAdmin) filter.parentAdmin = parentAdmin;
 
     const admins = await HierarchyAdmin.find(filter).sort({ createdAt: -1 });
     res.json(admins);

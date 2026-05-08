@@ -38,6 +38,14 @@ const hierarchyAdminSchema = new mongoose.Schema(
     state: { type: String, default: "Karnataka" },
     pincode: { type: String, default: "" },
 
+    // Hierarchy parent (e.g. a Promoter's reporting Taluk Admin)
+    parentAdmin: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "HierarchyAdmin",
+      default: null,
+      index: true,
+    },
+
     // Auth
     password: { type: String, select: false },
     lastLogin: { type: Date },

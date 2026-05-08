@@ -87,6 +87,12 @@ app.use("/api/inventory", require("./routes/inventoryRoutes"));
 // Pricing
 app.use("/api/pricing", require("./routes/pricingRoutes"));
 
+// Franchise applications (public submit + admin review)
+app.use("/api/franchise-applications", require("./routes/franchiseApplicationRoutes"));
+
+// Onboarded franchises
+app.use("/api/franchises", require("./routes/franchiseRoutes"));
+
 // Legacy
 app.use("/api/items", require("./routes/itemRoutes"));
 
