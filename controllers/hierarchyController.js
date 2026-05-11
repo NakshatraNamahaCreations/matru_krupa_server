@@ -48,6 +48,19 @@ const createAdmin = async (req, res) => {
       payload.password = mobile;
     }
 
+    // If a Taluk Admin is creating a Promoter, force-link the new promoter to
+    // them as parentAdmin and copy their district / taluk so the relationship
+    // is authoritative regardless of what the client sent.
+    if (
+      req.user?.isHierarchy &&
+      req.user.level === "Taluk Admin" &&
+      payload.level === "Promoters"
+    ) {
+      payload.parentAdmin = req.user._id;
+      payload.district = req.user.district || payload.district;
+      payload.talukName = req.user.talukName || payload.talukName;
+    }
+
     const admin = await HierarchyAdmin.create(payload);
 
     // Send credentials email (non-blocking — don't fail the request if email fails)

@@ -93,6 +93,9 @@ app.use("/api/franchise-applications", require("./routes/franchiseApplicationRou
 // Onboarded franchises
 app.use("/api/franchises", require("./routes/franchiseRoutes"));
 
+// Withdrawal requests (hierarchy submit + admin review)
+app.use("/api/withdrawal-requests", require("./routes/withdrawalRequestRoutes"));
+
 // Legacy
 app.use("/api/items", require("./routes/itemRoutes"));
 
