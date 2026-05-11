@@ -285,13 +285,13 @@ const createPromoterSale = async (req, res) => {
     }
 
     const code = promoterCode.trim().toUpperCase();
-    if (!code.startsWith("KA-PA-")) {
-      return res.status(400).json({ message: "Only Promoter codes (KA-PA-XXX) are allowed" });
+    if (!code.startsWith("KA-PR-")) {
+      return res.status(400).json({ message: "Only Promoter codes (KA-PR-XXX) are allowed" });
     }
 
     // Look up promoter name from HierarchyAdmin
     const promoter = await HierarchyAdmin.findOne({
-      adminId: new RegExp(`^${code.replace("KA-PA-", "KA-PR-")}$`, "i"),
+      adminId: new RegExp(`^${code}$`, "i"),
       level: "Promoters",
     });
 
